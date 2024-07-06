@@ -1,10 +1,18 @@
 import { NewUser, VerifyEmail } from "@/@types/user.types";
+import { PasswordResetToken } from "@/models/resetPassword.model";
 import { User } from "@/models/user.model";
 import { VerificationToken } from "@/models/verification.model";
 import { generateToken } from "@/utils/helper";
-import { sendVerificationMail } from "@/utils/mail";
+import {
+  ResetPasswordSucessMail,
+  sendForgetPasswordLink,
+  sendVerificationMail,
+} from "@/utils/mail";
 import { RequestHandler } from "express";
 import { Types } from "mongoose";
+import crypto from "crypto";
+import { PASSWORD_RESET_LINK } from "@/utils/variables";
+import { compare } from "bcrypt";
 
 /**
  * Controller for user sign-up process.
@@ -88,4 +96,91 @@ export const reVerifyEmail: RequestHandler = async (req, res) => {
   });
 
   res.status(200).json({ message: "Verification email sent again" });
+};
+
+export const forgetPassword: RequestHandler = async (req, res) => {
+  // Implement forget password logic here
+  const { email } = req.body;
+  const user = await User.findOne({ email });
+  if (!user) {
+    return res.status(404).json({ error: "User not found" });
+  }
+  // Remove existing token
+  await PasswordResetToken.findOneAndDelete({ user: user._id });
+  // Generate a new token
+  const token = crypto.randomBytes(42).toString("hex");
+  await PasswordResetToken.create({
+    user: user._id,
+    token,
+  });
+  // Send password reset email with the token
+  const resetLink = `${PASSWORD_RESET_LINK}?token=${token}&userId=${user._id}`;
+
+  await sendForgetPasswordLink({ email: user.email, link: resetLink });
+
+  res.status(200).json({ message: "Password reset email sent" });
+};
+
+export const grantValid: RequestHandler = (req, res) => {
+  res.json({ valid: true });
+};
+
+export const isValidResetPassword: RequestHandler = async (req, res, next) => {
+  const { userId, token } = req.body;
+
+  if (!userId || !token) {
+    return res.status(400).json({ error: "UserId and token are required" });
+  }
+
+  try {
+    const isValid = await PasswordResetToken.compareToken(userId, token);
+    if (!isValid) {
+      return res.status(403).json({ error: "Invalid token" });
+    }
+    next();
+  } catch (error) {
+    return res.status(500).json({ error: "Internal server error" });
+  }
+};
+
+export const updatePassword: RequestHandler = async (req, res) => {
+  const { password, userId } = req.body;
+
+  if (!password || !userId) {
+    return res.status(400).json({ error: "Password and userId are required" });
+  }
+
+  const user = await User.findById(userId);
+
+  if (!user) {
+    return res.status(403).json({ error: "Unauthorized Access!" });
+  }
+
+  if (!user.password) {
+    user.password = password;
+    await user.save();
+    await PasswordResetToken.findOneAndDelete({ user: user._id });
+    ResetPasswordSucessMail(user.name, user.email);
+    return res.status(200).json({ message: "Password set successfully" });
+  }
+
+  try {
+    const matched = await compare(password, user.password);
+
+    if (matched) {
+      return res
+        .status(422)
+        .json({ error: "Password must be different than previous password!" });
+    }
+
+    user.password = password;
+    await user.save();
+    await PasswordResetToken.findOneAndDelete({ user: user._id });
+    ResetPasswordSucessMail(user.name, user.email);
+    res.status(200).json({ message: "Password updated successfully" });
+  } catch (error) {
+    res
+      .status(500)
+      .json({ error: "An error occurred while updating the password" });
+  }
 };

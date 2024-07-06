@@ -36,7 +36,6 @@ const userSchema = new Schema<UserDocument>(
       type: String,
       required: true,
       minlength: 8,
-      select: false,
     },
     verified: {
       type: Boolean,
