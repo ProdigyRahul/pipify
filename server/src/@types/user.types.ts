@@ -7,3 +7,10 @@ export interface NewUser extends Request {
     password: string;
   };
 }
+
+export interface VerifyEmail extends Request {
+  body: {
+    userId: string;
+    token: string;
+  };
+}

@@ -1,3 +1,4 @@
+import { hash, compare } from "bcrypt";
 import { model, Model, ObjectId, Schema } from "mongoose";
 
 interface UserDocument {
@@ -68,6 +69,18 @@ const userSchema = new Schema<UserDocument>(
   },
   { timestamps: true }
 );
+
+userSchema.pre("save", async function (next) {
+  // Hash the token using bcyrpt
+  if (!this.isModified("password")) return next();
+
+  this.password = await hash(this.password, 10);
+  next();
+});
+
+userSchema.methods.comparePassword = async function (userPassword: string) {
+  return await compare(userPassword, this.password);
+};
 
 export const User: Model<UserDocument> = model<UserDocument>(
   "User",
