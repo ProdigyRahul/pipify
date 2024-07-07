@@ -46,3 +46,12 @@ export const isAuth: RequestHandler = async (req, res, next) => {
   req.token = token;
   next();
 };
+
+export const isVerified: RequestHandler = (req, res, next) => {
+  if (!req.user.verified) {
+    return res
+      .status(403)
+      .json({ error: "Unauthorized Access! Not Verified User" });
+  }
+  next();
+};

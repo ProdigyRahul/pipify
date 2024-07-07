@@ -43,4 +43,5 @@ authRouter.post("/is-auth", isAuth, sendProfile);
 authRouter.post("/sign-in", validate(signInValidation), signIn);
 authRouter.post("/update-profile", isAuth, fileParser, updateProfile);
 authRouter.post("/sign-out", isAuth, logOut);
+
 export default authRouter;
