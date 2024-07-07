@@ -8,6 +8,7 @@ const PORT = process.env.PORT || 8080;
 
 server.use(express.json());
 server.use(express.urlencoded({ extended: false }));
+server.use(express.static("src/public"));
 
 // API routes
 server.use("/api/v1/auth", authRouter);

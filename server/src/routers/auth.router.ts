@@ -2,13 +2,19 @@ import {
   forgetPassword,
   grantValid,
   reVerifyEmail,
+  signIn,
   signUpController,
   updatePassword,
   verifyEmail,
 } from "@/controllers/auth.controller";
 import { isValidResetPassword } from "@/middlewares/auth.middleware";
 import { validate } from "@/middlewares/validator";
-import { CreateUser, PasswordResetTokenSchema } from "@/utils/validation";
+import {
+  CreateUser,
+  PasswordResetTokenSchema,
+  signInValidation,
+  updatePasswordValidation,
+} from "@/utils/validation";
 import { Router } from "express";
 
 const authRouter = Router();
@@ -25,9 +31,10 @@ authRouter.post(
 );
 authRouter.post(
   "/update-password",
-  validate(PasswordResetTokenSchema),
+  validate(updatePasswordValidation),
   isValidResetPassword,
   updatePassword
 );
+authRouter.post("/sign-in", validate(signInValidation), signIn);
 
 export default authRouter;

@@ -38,3 +38,36 @@ export const PasswordResetTokenSchema = yup.object().shape({
     })
     .required("Invalid token! Please enter a valid token"),
 });
+
+export const updatePasswordValidation = yup.object().shape({
+  token: yup
+    .string()
+    .trim()
+    .required("Invalid token! Please enter a valid token"),
+  userId: yup
+    .string()
+    .transform(function (value) {
+      if (this.isType(value) && isValidObjectId(value)) {
+        return value;
+      }
+      return "Invalid user ID! Please enter a valid user ID";
+    })
+    .required("Invalid token! Please enter a valid token"),
+  password: yup
+    .string()
+    .trim()
+    .required("Please enter a valid password")
+    .min(8, "Please is too short")
+    .matches(
+      /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@.#$!%*?&])[A-Za-z\d@.#$!%*?&]{8,15}$/,
+      "Password is too simple!"
+    ),
+});
+
+export const signInValidation = yup.object().shape({
+  email: yup
+    .string()
+    .email("Invalid email! Please enter a valid email address")
+    .required("Please enter a valid email address"),
+  password: yup.string().trim().required("Please enter a valid password"),
+});

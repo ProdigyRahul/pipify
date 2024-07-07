@@ -178,9 +178,14 @@ export const updatePassword: RequestHandler = async (req, res) => {
     await PasswordResetToken.findOneAndDelete({ user: user._id });
     ResetPasswordSucessMail(user.name, user.email);
     res.status(200).json({ message: "Password updated successfully" });
+
+    // Delete password reset token
+    PasswordResetToken.findOneAndDelete({ user: user._id });
   } catch (error) {
     res
       .status(500)
       .json({ error: "An error occurred while updating the password" });
   }
 };
+
+export const signIn: RequestHandler = async (req, res) => {};
