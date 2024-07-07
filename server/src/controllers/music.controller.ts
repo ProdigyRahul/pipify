@@ -52,3 +52,46 @@ export const uploadMusic: RequestHandler = async (
     },
   });
 };
+
+export const updateMusic: RequestHandler = async (
+  req: RequestWithFiles,
+  res
+) => {
+  const { title, about, categories } = req.body;
+  const thumbnail = req.files?.thumbnail;
+  const userId = req.user.id;
+  const { musicId } = req.params;
+
+  const music = await Music.findOne(
+    { _id: musicId, user: userId },
+    { title, about, categories },
+    { new: true }
+  );
+  if (!music) {
+    return res.status(404).json({ error: "Music not found!" });
+  }
+
+  if (thumbnail) {
+    if (music.thumbnail?.publicId) {
+      await cloudinary.uploader.destroy(music.thumbnail?.publicId);
+    }
+    const thumbnailRes = await cloudinary.uploader.upload(thumbnail!.filepath, {
+      width: 200,
+      height: 200,
+      crop: "fill",
+    });
+    music.thumbnail = {
+      url: thumbnailRes.secure_url,
+      publicId: thumbnailRes.publicId,
+    };
+    await music.save();
+  }
+  res.json({
+    music: {
+      title: music.title,
+      about: music.about,
+      file: music.file,
+      poster: music.thumbnail?.url,
+    },
+  });
+};

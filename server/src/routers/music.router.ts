@@ -1,4 +1,4 @@
-import { uploadMusic } from "@/controllers/music.controller";
+import { updateMusic, uploadMusic } from "@/controllers/music.controller";
 import { isAuth, isVerified } from "@/middlewares/auth.middleware";
 import fileParser from "@/middlewares/fileParser";
 import { validate } from "@/middlewares/validator";
@@ -14,5 +14,12 @@ musicRouter.post(
   validate(MusicValidation),
   uploadMusic
 );
-
+musicRouter.patch(
+  "/:musicId",
+  isAuth,
+  isVerified,
+  fileParser,
+  validate(MusicValidation),
+  updateMusic
+);
 export default musicRouter;
