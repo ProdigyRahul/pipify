@@ -2,7 +2,7 @@ import { NewUser, VerifyEmail } from "@/@types/user.types";
 import { PasswordResetToken } from "@/models/resetPassword.model";
 import { User } from "@/models/user.model";
 import { VerificationToken } from "@/models/verification.model";
-import { generateToken } from "@/utils/helper";
+import { formatProfile, generateToken } from "@/utils/helper";
 import {
   ResetPasswordSucessMail,
   sendForgetPasswordLink,
@@ -11,8 +11,12 @@ import {
 import { RequestHandler } from "express";
 import { Types } from "mongoose";
 import crypto from "crypto";
-import { PASSWORD_RESET_LINK } from "@/utils/variables";
+import { JWT_SECRET, PASSWORD_RESET_LINK } from "@/utils/variables";
 import { compare } from "bcrypt";
+import jwt from "jsonwebtoken";
+import { RequestWithFiles } from "@/middlewares/fileParser";
+import cloudinary from "@/cloud";
+import { profile } from "console";
 
 /**
  * Controller for user sign-up process.
@@ -188,4 +192,111 @@ export const updatePassword: RequestHandler = async (req, res) => {
   }
 };
 
-export const signIn: RequestHandler = async (req, res) => {};
+export const signIn: RequestHandler = async (req, res) => {
+  const { email, password } = req.body;
+  const user = await User.findOne({
+    email,
+  });
+  if (!user || !user.verified) {
+    return res
+      .status(401)
+      .json({ error: "Invalid email or unverified account" });
+  }
+  const isCorrectPassword = await compare(password, user.password);
+  if (!isCorrectPassword) {
+    return res.status(401).json({ error: "Invalid email or password" });
+  }
+  // Generate JWT token
+  const token = jwt.sign({ userId: user._id }, JWT_SECRET, {
+    expiresIn: "30d",
+  });
+  user.tokens.push(token);
+  await user.save();
+  res.json({
+    profile: {
+      id: user._id,
+      name: user.name,
+      email: user.email,
+      verified: user.verified,
+      avatar: user.avatar?.url,
+      followers: user.followers.length,
+      followings: user.following.length,
+    },
+    token,
+    message: "Login successful",
+  });
+};
+
+export const updateProfile: RequestHandler = async (
+  req: RequestWithFiles,
+  res
+) => {
+  const { name } = req.body;
+  const avatar = req.files?.avatar;
+  const user = await User.findById(req.user.id);
+  if (!user) {
+    // Unauthorized access
+    throw new Error(
+      "Something went wrong! User is not logged in. Please login again and try again later"
+    );
+  }
+  if (typeof name !== "string") {
+    return res.status(422).json({ error: "Name must be a string" });
+  }
+  if (name.trim().length < 3) {
+    return res.status(422).json({ error: "Invalid Name" });
+  }
+  user.name = name;
+  if (avatar) {
+    // If avatar is already present then remove old avatar
+    if (user.avatar?.publicId) {
+      await cloudinary.uploader.destroy(user.avatar.publicId);
+    }
+    // Upload new avatar
+    const { secure_url, public_id } = await cloudinary.uploader.upload(
+      avatar.filepath,
+      {
+        transformation: {
+          width: 300,
+          height: 300,
+          crop: "thumb",
+          gravity: "face",
+        },
+      }
+    );
+    user.avatar = { url: secure_url, publicId: public_id };
+  }
+  await user.save();
+  res.json({
+    profile: formatProfile(user),
+  });
+};
+
+export const sendProfile: RequestHandler = async (req, res) => {
+  res.json({
+    profile: req.user,
+  });
+};
+
+export const logOut: RequestHandler = async (req, res) => {
+  const { logOutAll } = req.query;
+  const token = req.token;
+  const user = await User.findById(req.user.id);
+  if (!user) {
+    // Unauthorized access
+    throw new Error(
+      "Something went wrong! User is not logged in. Please login again and try again later"
+    );
+  }
+  if (!token) {
+    // Invalid token
+    throw new Error("Invalid token. Please login again and try again later");
+  }
+  if (logOutAll === "true") {
+    user.tokens = [];
+  } else {
+    user.tokens = user.tokens.filter((token) => token !== req.token);
+  }
+  await user.save();
+  res.status(200).json({ message: "Logged out successfully" });
+};
