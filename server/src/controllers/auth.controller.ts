@@ -1,26 +1,33 @@
+// Import types and models
 import { NewUser, VerifyEmail } from "@/@types/user.types";
 import { PasswordResetToken } from "@/models/resetPassword.model";
 import { User } from "@/models/user.model";
 import { VerificationToken } from "@/models/verification.model";
+
+// Import helper functions and utilities
 import { formatProfile, generateToken } from "@/utils/helper";
 import {
   ResetPasswordSucessMail,
   sendForgetPasswordLink,
   sendVerificationMail,
 } from "@/utils/mail";
+import { JWT_SECRET, PASSWORD_RESET_LINK } from "@/utils/variables";
+
+// Import middleware and dependencies
 import { RequestHandler } from "express";
 import { Types } from "mongoose";
 import crypto from "crypto";
-import { JWT_SECRET, PASSWORD_RESET_LINK } from "@/utils/variables";
 import { compare } from "bcrypt";
 import jwt from "jsonwebtoken";
 import { RequestWithFiles } from "@/middlewares/fileParser";
 import cloudinary from "@/cloud";
-import { profile } from "console";
 
 /**
- * Controller for user sign-up process.
- * Creates a new user, generates a verification token, and sends a verification email.
+ * @desc    User Sign-up Controller
+ * @route   POST /api/auth/signup
+ * @access  Public
+ *
+ * Creates a new user account, generates a verification token, and sends a verification email.
  */
 export const signUpController: RequestHandler = async (req: NewUser, res) => {
   const { email, password, name } = req.body;
@@ -28,7 +35,7 @@ export const signUpController: RequestHandler = async (req: NewUser, res) => {
 
   const token = generateToken();
 
-  sendVerificationMail(token, {
+  await sendVerificationMail(token, {
     name,
     email,
     userId: user._id.toString(),
@@ -38,8 +45,11 @@ export const signUpController: RequestHandler = async (req: NewUser, res) => {
 };
 
 /**
- * Controller for email verification process.
- * Validates the token, updates user's verification status, and removes the used token.
+ * @desc    Email Verification Controller
+ * @route   POST /api/auth/verify-email
+ * @access  Public
+ *
+ * Validates the email verification token and updates the user's verification status.
  */
 export const verifyEmail: RequestHandler = async (req: VerifyEmail, res) => {
   const { token, userId } = req.body;
@@ -63,13 +73,11 @@ export const verifyEmail: RequestHandler = async (req: VerifyEmail, res) => {
 };
 
 /**
- * Controller for re-sending verification email.
- * Removes the existing token, sends a new verification email, and creates a new token in the database.
- */
-
-/**
- * Controller for re-sending verification email.
- * Removes the existing token, generates a new one, sends a new verification email, and creates a new token in the database.
+ * @desc    Re-send Verification Email Controller
+ * @route   POST /api/auth/re-verify-email
+ * @access  Public
+ *
+ * Generates a new verification token and sends a fresh verification email to the user.
  */
 export const reVerifyEmail: RequestHandler = async (req, res) => {
   const { userId } = req.body;
@@ -86,13 +94,10 @@ export const reVerifyEmail: RequestHandler = async (req, res) => {
     return res.status(404).json({ error: "User not found" });
   }
 
-  // Remove existing token
   await VerificationToken.findOneAndDelete({ user: userObjectId });
 
-  // Generate a new token
   const newToken = generateToken();
 
-  // Send new verification email with the new token
   await sendVerificationMail(newToken, {
     name: user.name,
     email: user.email,
@@ -102,22 +107,28 @@ export const reVerifyEmail: RequestHandler = async (req, res) => {
   res.status(200).json({ message: "Verification email sent again" });
 };
 
+/**
+ * @desc    Forget Password Controller
+ * @route   POST /api/auth/forget-password
+ * @access  Public
+ *
+ * Generates a password reset token and sends a reset link to the user's email.
+ */
 export const forgetPassword: RequestHandler = async (req, res) => {
-  // Implement forget password logic here
   const { email } = req.body;
   const user = await User.findOne({ email });
   if (!user) {
     return res.status(404).json({ error: "User not found" });
   }
-  // Remove existing token
+
   await PasswordResetToken.findOneAndDelete({ user: user._id });
-  // Generate a new token
+
   const token = crypto.randomBytes(42).toString("hex");
   await PasswordResetToken.create({
     user: user._id,
     token,
   });
-  // Send password reset email with the token
+
   const resetLink = `${PASSWORD_RESET_LINK}?token=${token}&userId=${user._id}`;
 
   await sendForgetPasswordLink({ email: user.email, link: resetLink });
@@ -125,10 +136,23 @@ export const forgetPassword: RequestHandler = async (req, res) => {
   res.status(200).json({ message: "Password reset email sent" });
 };
 
+/**
+ * @desc    Grant Valid Token Controller
+ * @route   POST /api/auth/grant-valid
+ * @access  Private
+ *
+ * Confirms the validity of a token, used in the password reset process.
+ */
 export const grantValid: RequestHandler = (req, res) => {
   res.json({ valid: true });
 };
 
+/**
+ * @desc    Validate Reset Password Token Middleware
+ * @access  Private
+ *
+ * Middleware to validate the password reset token before allowing password update.
+ */
 export const isValidResetPassword: RequestHandler = async (req, res, next) => {
   const { userId, token } = req.body;
 
@@ -147,6 +171,13 @@ export const isValidResetPassword: RequestHandler = async (req, res, next) => {
   }
 };
 
+/**
+ * @desc    Update Password Controller
+ * @route   POST /api/auth/update-password
+ * @access  Private
+ *
+ * Updates the user's password after validating the reset token.
+ */
 export const updatePassword: RequestHandler = async (req, res) => {
   const { password, userId } = req.body;
 
@@ -183,7 +214,6 @@ export const updatePassword: RequestHandler = async (req, res) => {
     ResetPasswordSucessMail(user.name, user.email);
     res.status(200).json({ message: "Password updated successfully" });
 
-    // Delete password reset token
     PasswordResetToken.findOneAndDelete({ user: user._id });
   } catch (error) {
     res
@@ -192,11 +222,16 @@ export const updatePassword: RequestHandler = async (req, res) => {
   }
 };
 
+/**
+ * @desc    User Sign-in Controller
+ * @route   POST /api/auth/signin
+ * @access  Public
+ *
+ * Authenticates the user and returns a JWT token along with user profile information.
+ */
 export const signIn: RequestHandler = async (req, res) => {
   const { email, password } = req.body;
-  const user = await User.findOne({
-    email,
-  });
+  const user = await User.findOne({ email });
   if (!user || !user.verified) {
     return res
       .status(401)
@@ -206,7 +241,7 @@ export const signIn: RequestHandler = async (req, res) => {
   if (!isCorrectPassword) {
     return res.status(401).json({ error: "Invalid email or password" });
   }
-  // Generate JWT token
+
   const token = jwt.sign({ userId: user._id }, JWT_SECRET, {
     expiresIn: "30d",
   });
@@ -227,6 +262,13 @@ export const signIn: RequestHandler = async (req, res) => {
   });
 };
 
+/**
+ * @desc    Update User Profile Controller
+ * @route   POST /api/auth/update-profile
+ * @access  Private
+ *
+ * Updates the user's profile information, including name and avatar.
+ */
 export const updateProfile: RequestHandler = async (
   req: RequestWithFiles,
   res
@@ -235,7 +277,6 @@ export const updateProfile: RequestHandler = async (
   const avatar = req.files?.avatar;
   const user = await User.findById(req.user.id);
   if (!user) {
-    // Unauthorized access
     throw new Error(
       "Something went wrong! User is not logged in. Please login again and try again later"
     );
@@ -248,11 +289,9 @@ export const updateProfile: RequestHandler = async (
   }
   user.name = name;
   if (avatar) {
-    // If avatar is already present then remove old avatar
     if (user.avatar?.publicId) {
       await cloudinary.uploader.destroy(user.avatar.publicId);
     }
-    // Upload new avatar
     const { secure_url, public_id } = await cloudinary.uploader.upload(
       avatar.filepath,
       {
@@ -272,30 +311,42 @@ export const updateProfile: RequestHandler = async (
   });
 };
 
+/**
+ * @desc    Send User Profile Controller
+ * @route   GET /api/auth/profile
+ * @access  Private
+ *
+ * Retrieves and sends the authenticated user's profile information.
+ */
 export const sendProfile: RequestHandler = async (req, res) => {
   res.json({
     profile: req.user,
   });
 };
 
+/**
+ * @desc    User Logout Controller
+ * @route   POST /api/auth/logout
+ * @access  Private
+ *
+ * Logs out the user by removing their authentication token(s).
+ */
 export const logOut: RequestHandler = async (req, res) => {
   const { logOutAll } = req.query;
   const token = req.token;
   const user = await User.findById(req.user.id);
   if (!user) {
-    // Unauthorized access
     throw new Error(
       "Something went wrong! User is not logged in. Please login again and try again later"
     );
   }
   if (!token) {
-    // Invalid token
     throw new Error("Invalid token. Please login again and try again later");
   }
   if (logOutAll === "true") {
     user.tokens = [];
   } else {
-    user.tokens = user.tokens.filter((token) => token !== req.token);
+    user.tokens = user.tokens.filter((t) => t !== req.token);
   }
   await user.save();
   res.status(200).json({ message: "Logged out successfully" });

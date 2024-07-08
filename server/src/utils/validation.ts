@@ -2,6 +2,12 @@ import { isValidObjectId } from "mongoose";
 import * as yup from "yup";
 import { categories } from "./musicCategories";
 
+/**
+ * CreateUser Schema
+ *
+ * Defines the validation schema for creating a new user.
+ * Requires 'name', 'email', and 'password' fields with specific constraints.
+ */
 export const CreateUser = yup.object().shape({
   name: yup
     .string()
@@ -17,13 +23,19 @@ export const CreateUser = yup.object().shape({
     .string()
     .trim()
     .required("Please enter a valid password")
-    .min(8, "Please is too short")
+    .min(8, "Password is too short")
     .matches(
       /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@.#$!%*?&])[A-Za-z\d@.#$!%*?&]{8,15}$/,
-      "Password is too simple!"
+      "Password is too simple! Must contain at least one lowercase letter, one uppercase letter, one number, and one special character."
     ),
 });
 
+/**
+ * PasswordResetTokenSchema
+ *
+ * Defines the validation schema for resetting a password with a token.
+ * Requires 'token' and 'userId' fields with specific constraints.
+ */
 export const PasswordResetTokenSchema = yup.object().shape({
   token: yup
     .string()
@@ -40,6 +52,12 @@ export const PasswordResetTokenSchema = yup.object().shape({
     .required("Invalid token! Please enter a valid token"),
 });
 
+/**
+ * updatePasswordValidation Schema
+ *
+ * Defines the validation schema for updating a password.
+ * Requires 'token', 'userId', and 'password' fields with specific constraints.
+ */
 export const updatePasswordValidation = yup.object().shape({
   token: yup
     .string()
@@ -58,13 +76,19 @@ export const updatePasswordValidation = yup.object().shape({
     .string()
     .trim()
     .required("Please enter a valid password")
-    .min(8, "Please is too short")
+    .min(8, "Password is too short")
     .matches(
       /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@.#$!%*?&])[A-Za-z\d@.#$!%*?&]{8,15}$/,
-      "Password is too simple!"
+      "Password is too simple! Must contain at least one lowercase letter, one uppercase letter, one number, and one special character."
     ),
 });
 
+/**
+ * signInValidation Schema
+ *
+ * Defines the validation schema for user sign-in.
+ * Requires 'email' and 'password' fields with specific constraints.
+ */
 export const signInValidation = yup.object().shape({
   email: yup
     .string()
@@ -73,6 +97,13 @@ export const signInValidation = yup.object().shape({
   password: yup.string().trim().required("Please enter a valid password"),
 });
 
+/**
+ * MusicValidation Schema
+ *
+ * Defines the validation schema for creating or updating music entries.
+ * Requires 'title', 'about', and 'categories' fields with specific constraints,
+ * where 'categories' must be one of the predefined categories.
+ */
 export const MusicValidation = yup.object().shape({
   title: yup
     .string()

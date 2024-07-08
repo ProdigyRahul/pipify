@@ -5,9 +5,11 @@ import authRouter from "./routers/auth.router";
 import musicRouter from "./routers/music.router";
 import favouriteRouter from "./routers/favourite.router";
 
+// Initialize Express server
 const server = express();
 const PORT = process.env.PORT || 8080;
 
+// Middleware setup
 server.use(express.json());
 server.use(express.urlencoded({ extended: false }));
 server.use(express.static("src/public"));
@@ -17,6 +19,7 @@ server.use("/api/v1/auth", authRouter);
 server.use("/api/v1/music", musicRouter);
 server.use("/api/v1/favourite", favouriteRouter);
 
+// Start the server
 server.listen(PORT, () => {
   console.log(`Server is running at http://localhost:8080`);
 });

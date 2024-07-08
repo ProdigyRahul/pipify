@@ -1,16 +1,28 @@
+// Import necessary types and models
 import { PopulatedFavouritesList } from "@/@types/music.types";
 import Favourite from "@/models/favourite.model";
 import Music, { MusicDocument } from "@/models/music.model";
 import { RequestHandler } from "express-serve-static-core";
 import { isValidObjectId, ObjectId } from "mongoose";
 
+/**
+ * @desc    Toggle Favourite Music Controller
+ * @route   POST /api/favourites/toggle
+ * @access  Private
+ *
+ * Toggles a music track's favourite status for the authenticated user.
+ * Adds the track to favourites if not present, or removes it if already favourited.
+ * Also updates the likes count on the Music document.
+ */
 export const toggleFavourite: RequestHandler = async (req, res) => {
   const musicId = req.query.musicId as string;
+
+  // Validate musicId
   if (!isValidObjectId(musicId)) {
     return res.status(422).json({ error: "Invalid musicId" });
   }
 
-  // check if music exists
+  // Check if music exists
   const music = await Music.findById(musicId);
   if (!music) {
     return res.status(404).json({ error: "Music not found" });
@@ -19,7 +31,7 @@ export const toggleFavourite: RequestHandler = async (req, res) => {
   let status_music: string;
   let message: string;
 
-  //   Music is already in favorites
+  // Check if music is already in favorites
   const alreadyExistMusic = await Favourite.findOne({
     user: req.user.id,
     items: musicId,
@@ -36,6 +48,7 @@ export const toggleFavourite: RequestHandler = async (req, res) => {
     status_music = "removed";
     message = "Removed from favorites";
   } else {
+    // Add music to favorites
     const favourite = await Favourite.findOne({ user: req.user.id });
     if (favourite) {
       await Favourite.updateOne(
@@ -53,6 +66,8 @@ export const toggleFavourite: RequestHandler = async (req, res) => {
     status_music = "added";
     message = "Added to favorites";
   }
+
+  // Update likes in Music document
   if (status_music === "added") {
     await Music.findByIdAndUpdate(musicId, {
       $addToSet: { likes: req.user.id },
@@ -63,11 +78,22 @@ export const toggleFavourite: RequestHandler = async (req, res) => {
       $pull: { likes: req.user.id },
     });
   }
+
   return res.json({ status: status_music, message: message });
 };
 
+/**
+ * @desc    Get User's Favourite Music Controller
+ * @route   GET /api/favourites
+ * @access  Private
+ *
+ * Retrieves the list of favourite music tracks for the authenticated user.
+ * Returns a formatted list of music objects with essential information.
+ */
 export const getFavourites: RequestHandler = async (req, res) => {
   const userId = req.user.id;
+
+  // Find user's favourites and populate music details
   const favourites = await Favourite.findOne({ user: userId }).populate<{
     items: PopulatedFavouritesList[];
   }>({
@@ -76,21 +102,24 @@ export const getFavourites: RequestHandler = async (req, res) => {
       path: "user",
     },
   });
+
+  // Handle case where no favourites found
   if (!favourites) {
     return res.status(404).json({ error: "Favourites not found", musics: [] });
   }
-  const musics = favourites?.items.map((item) => {
-    return {
-      id: item._id,
-      title: item.title,
-      categories: item.categories,
-      file: item.file.url,
-      thumbnail: item.thumbnail?.url,
-      user: {
-        name: item.user.name,
-        id: item.user._id,
-      },
-    };
-  });
+
+  // Format music data for response
+  const musics = favourites.items.map((item) => ({
+    id: item._id,
+    title: item.title,
+    categories: item.categories,
+    file: item.file.url,
+    thumbnail: item.thumbnail?.url,
+    user: {
+      name: item.user.name,
+      id: item.user._id,
+    },
+  }));
+
   res.json({ musics });
 };

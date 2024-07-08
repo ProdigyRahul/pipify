@@ -1,5 +1,12 @@
+/**
+ * Destructure environment variables from the process environment object.
+ * Ensure typesafety by casting process.env to an object with string keys.
+ */
 const { env } = process as { env: { [key: string]: string } };
 
+/**
+ * Extract specific environment variables for use in the application.
+ */
 export const {
   MONGO_URI,
   MAILTRAP_USER,

@@ -1,12 +1,14 @@
 import { model, Model, Schema, Types } from "mongoose";
 import { hash, compare } from "bcrypt";
 
+// Interface for PasswordResetDocument
 interface PasswordResetDocument {
   user: Types.ObjectId;
   token: string;
   createdAt: Date;
 }
 
+// Interface for VerifyModel extending Model<PasswordResetDocument>
 interface VerifyModel extends Model<PasswordResetDocument> {
   compareToken(
     userId: string | Types.ObjectId,
@@ -14,10 +16,11 @@ interface VerifyModel extends Model<PasswordResetDocument> {
   ): Promise<boolean>;
 }
 
+// Define passwordResetSchema using Schema<PasswordResetDocument, VerifyModel>
 const passwordResetSchema = new Schema<PasswordResetDocument, VerifyModel>({
   user: {
     type: Schema.Types.ObjectId,
-    ref: "User",
+    ref: "User", // Reference to the User model
     required: true,
   },
   token: {
@@ -27,16 +30,18 @@ const passwordResetSchema = new Schema<PasswordResetDocument, VerifyModel>({
   createdAt: {
     type: Date,
     default: Date.now,
-    expires: 3600,
+    expires: 3600, // Automatically delete documents after 1 hour
   },
 });
 
+// Middleware: Hash token before saving
 passwordResetSchema.pre("save", async function (next) {
   if (!this.isModified("token")) return next();
   this.token = await hash(this.token, 10);
   next();
 });
 
+// Static method: compareToken to compare token with hashed token in database
 passwordResetSchema.statics.compareToken = async function (
   userId: string | Types.ObjectId,
   token: string
@@ -62,6 +67,7 @@ passwordResetSchema.statics.compareToken = async function (
     );
     return false;
   }
+
   try {
     return await compare(token, doc.token);
   } catch (error) {
@@ -70,7 +76,8 @@ passwordResetSchema.statics.compareToken = async function (
   }
 };
 
+// Export PasswordResetToken model
 export const PasswordResetToken = model<PasswordResetDocument, VerifyModel>(
-  "PasswordResetToken",
-  passwordResetSchema
+  "PasswordResetToken", // Collection name in MongoDB
+  passwordResetSchema // Schema definition for PasswordResetToken collection
 );
