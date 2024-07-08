@@ -123,3 +123,33 @@ export const getFavourites: RequestHandler = async (req, res) => {
 
   res.json({ musics });
 };
+
+/**
+ * @desc    Check if a Music Track is a Favourite for the User
+ * @route   GET /api/favourites/is-favourite
+ * @access  Private
+ *
+ * Checks whether a specific music track is marked as a favourite by the authenticated user.
+ * Returns a boolean indicating the favourite status.
+ */
+export const isfavourite: RequestHandler = async (req, res) => {
+  const musicId = req.query.musicId as string;
+
+  // Validate musicId
+  if (!isValidObjectId(musicId)) {
+    return res.status(422).json({ error: "Invalid musicId" });
+  }
+
+  // Check if the music track is in the user's favourites
+  const favourite = await Favourite.findOne({
+    user: req.user.id,
+    items: musicId,
+  });
+
+  // Return the favourite status
+  if (favourite) {
+    res.json({ isFavourite: true });
+  } else {
+    res.json({ isFavourite: false });
+  }
+};

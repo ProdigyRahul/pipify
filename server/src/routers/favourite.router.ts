@@ -1,6 +1,7 @@
 // Import controller functions for favorite operations
 import {
   getFavourites,
+  isfavourite,
   toggleFavourite,
 } from "@/controllers/favourite.controller";
 
@@ -28,6 +29,13 @@ favouriteRouter.post("/", isAuth, isVerified, toggleFavourite);
  * @description Retrieve all favourite items for the authenticated and verified user
  * @access Private
  */
-favouriteRouter.get("/", isAuth, isVerified, getFavourites);
+favouriteRouter.get("/", isAuth, getFavourites);
+
+/**
+ * @route GET /api/v1/favourite/is-favourite
+ * @description Check if a specific item is a favourite for the authenticated and verified user
+ * @access Private
+ */
+favouriteRouter.get("/is-favourite", isAuth, isfavourite);
 
 export default favouriteRouter;

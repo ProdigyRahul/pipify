@@ -4,6 +4,8 @@ import "./db";
 import authRouter from "./routers/auth.router";
 import musicRouter from "./routers/music.router";
 import favouriteRouter from "./routers/favourite.router";
+import playlistRouter from "./routers/playlist.router";
+import profileRouter from "./routers/profile.router";
 
 // Initialize Express server
 const server = express();
@@ -18,6 +20,8 @@ server.use(express.static("src/public"));
 server.use("/api/v1/auth", authRouter);
 server.use("/api/v1/music", musicRouter);
 server.use("/api/v1/favourite", favouriteRouter);
+server.use("/api/v1/playlist", playlistRouter);
+server.use("/api/v1/profile", profileRouter);
 
 // Start the server
 server.listen(PORT, () => {

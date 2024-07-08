@@ -17,6 +17,7 @@ export interface MusicDocument<T = ObjectId> {
   };
   likes: ObjectId[]; // Array of user IDs who liked the music
   categories: categoriesTypes; // Type of music categories
+  createdAt: Date; // Date
 }
 
 // Define MusicSchema using Schema<MusicDocument>

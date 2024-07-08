@@ -116,3 +116,65 @@ export const MusicValidation = yup.object().shape({
     .oneOf(categories, "Invalid Category!")
     .required("Category is required"),
 });
+
+/**
+ * PlaylistValidation Schema
+ *
+ * Defines the validation schema for creating or updating playlists.
+ * Requires 'title', 'musicId', and 'visibility' fields with specific constraints,
+ * where 'visibility' must be either 'public' or 'private'.
+ */
+export const PlaylistValidation = yup.object().shape({
+  title: yup
+    .string()
+    .required("Title is required")
+    .min(3, "Title must be at least 3 characters")
+    .max(50, "Title must be at most 50 characters"),
+  musicId: yup.string().transform(function (value) {
+    if (this.isType(value) && isValidObjectId(value)) {
+      return value;
+    } else {
+      return "";
+    }
+  }),
+  visibility: yup
+    .string()
+    .oneOf(["public", "private"], "Visibility must be public or private!")
+    .required("Visibility is required"),
+});
+
+/**
+ * OldPlaylistValidation Schema
+ *
+ * Defines the validation schema for updating an old playlist.
+ * Requires 'title', 'item', 'id', and 'visibility' fields with specific constraints,
+ * where 'item' and 'id' must be valid ObjectId strings and 'visibility' must be either 'public' or 'private'.
+ */
+
+export const OldPlaylistValidation = yup.object().shape({
+  title: yup
+    .string()
+    .required("Title is required")
+    .min(3, "Title must be at least 3 characters")
+    .max(50, "Title must be at most 50 characters"),
+  // Music id validation
+  item: yup.string().transform(function (value) {
+    if (this.isType(value) && isValidObjectId(value)) {
+      return value;
+    } else {
+      return "";
+    }
+  }),
+  // Playlist id
+  id: yup.string().transform(function (value) {
+    if (this.isType(value) && isValidObjectId(value)) {
+      return value;
+    } else {
+      return "";
+    }
+  }),
+  visibility: yup
+    .string()
+    .oneOf(["public", "private"], "Visibility must be public or private!")
+    .required("Visibility is required"),
+});
