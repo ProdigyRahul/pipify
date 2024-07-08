@@ -1,0 +1,12 @@
+"use strict";
+Object.defineProperty(exports, "__esModule", { value: true });
+const profile_controller_1 = require("../controllers/profile.controller");
+const auth_middleware_1 = require("../middlewares/auth.middleware");
+const express_1 = require("express");
+const profileRouter = (0, express_1.Router)();
+profileRouter.post("/update-follower/:profileId", auth_middleware_1.isAuth, profile_controller_1.updateFollower);
+profileRouter.get("/uploads", auth_middleware_1.isAuth, profile_controller_1.getUploads);
+profileRouter.get("/uploads/:profileId", profile_controller_1.getPublicUploads);
+profileRouter.get("/public/:profileId", profile_controller_1.getPublicProfile);
+profileRouter.get("/playlist/:profileId", profile_controller_1.getPublicPlaylists);
+exports.default = profileRouter;

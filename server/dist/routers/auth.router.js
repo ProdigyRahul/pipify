@@ -1,0 +1,23 @@
+"use strict";
+var __importDefault = (this && this.__importDefault) || function (mod) {
+    return (mod && mod.__esModule) ? mod : { "default": mod };
+};
+Object.defineProperty(exports, "__esModule", { value: true });
+const auth_controller_1 = require("../controllers/auth.controller");
+const auth_middleware_1 = require("../middlewares/auth.middleware");
+const validator_1 = require("../middlewares/validator");
+const validation_1 = require("../utils/validation");
+const express_1 = require("express");
+const fileParser_1 = __importDefault(require("../middlewares/fileParser"));
+const authRouter = (0, express_1.Router)();
+authRouter.post("/signup", (0, validator_1.validate)(validation_1.CreateUser), auth_controller_1.signUpController);
+authRouter.post("/verify-email", auth_controller_1.verifyEmail);
+authRouter.post("/re-verify-email", auth_controller_1.reVerifyEmail);
+authRouter.post("/forget-password", auth_controller_1.forgetPassword);
+authRouter.post("/verify-reset-password", (0, validator_1.validate)(validation_1.PasswordResetTokenSchema), auth_middleware_1.isValidResetPassword, auth_controller_1.grantValid);
+authRouter.post("/update-password", (0, validator_1.validate)(validation_1.updatePasswordValidation), auth_middleware_1.isValidResetPassword, auth_controller_1.updatePassword);
+authRouter.post("/is-auth", auth_middleware_1.isAuth, auth_controller_1.sendProfile);
+authRouter.post("/sign-in", (0, validator_1.validate)(validation_1.signInValidation), auth_controller_1.signIn);
+authRouter.post("/update-profile", auth_middleware_1.isAuth, fileParser_1.default, auth_controller_1.updateProfile);
+authRouter.post("/sign-out", auth_middleware_1.isAuth, auth_controller_1.logOut);
+exports.default = authRouter;

@@ -1,0 +1,14 @@
+"use strict";
+Object.defineProperty(exports, "__esModule", { value: true });
+const playlist_controller_1 = require("../controllers/playlist.controller");
+const auth_middleware_1 = require("../middlewares/auth.middleware");
+const validator_1 = require("../middlewares/validator");
+const validation_1 = require("../utils/validation");
+const express_1 = require("express");
+const playlistRouter = (0, express_1.Router)();
+playlistRouter.post("/create", auth_middleware_1.isAuth, auth_middleware_1.isVerified, (0, validator_1.validate)(validation_1.PlaylistValidation), playlist_controller_1.createPlaylist);
+playlistRouter.patch("/", auth_middleware_1.isAuth, auth_middleware_1.isVerified, (0, validator_1.validate)(validation_1.OldPlaylistValidation), playlist_controller_1.updatePlaylist);
+playlistRouter.delete("/", auth_middleware_1.isAuth, auth_middleware_1.isVerified, playlist_controller_1.removePlaylist);
+playlistRouter.get("/playlists", auth_middleware_1.isAuth, auth_middleware_1.isVerified, playlist_controller_1.getPlaylists);
+playlistRouter.get("/:playlistId", auth_middleware_1.isAuth, playlist_controller_1.getMusics);
+exports.default = playlistRouter;
