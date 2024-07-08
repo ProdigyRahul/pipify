@@ -1,10 +1,11 @@
 import { categories, categoriesTypes } from "@/utils/musicCategories";
 import { Model, model, models, ObjectId, Schema } from "mongoose";
 
-export interface MusicDocument {
+export interface MusicDocument<T = ObjectId> {
+  _id: ObjectId;
   title: string;
   about: string;
-  user: ObjectId;
+  user: T;
   file: {
     url: string;
     publicId: string;

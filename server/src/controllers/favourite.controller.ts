@@ -1,7 +1,8 @@
+import { PopulatedFavouritesList } from "@/@types/music.types";
 import Favourite from "@/models/favourite.model";
-import Music from "@/models/music.model";
+import Music, { MusicDocument } from "@/models/music.model";
 import { RequestHandler } from "express-serve-static-core";
-import { isValidObjectId } from "mongoose";
+import { isValidObjectId, ObjectId } from "mongoose";
 
 export const toggleFavourite: RequestHandler = async (req, res) => {
   const musicId = req.query.musicId as string;
@@ -63,4 +64,33 @@ export const toggleFavourite: RequestHandler = async (req, res) => {
     });
   }
   return res.json({ status: status_music, message: message });
+};
+
+export const getFavourites: RequestHandler = async (req, res) => {
+  const userId = req.user.id;
+  const favourites = await Favourite.findOne({ user: userId }).populate<{
+    items: PopulatedFavouritesList[];
+  }>({
+    path: "items",
+    populate: {
+      path: "user",
+    },
+  });
+  if (!favourites) {
+    return res.status(404).json({ error: "Favourites not found", musics: [] });
+  }
+  const musics = favourites?.items.map((item) => {
+    return {
+      id: item._id,
+      title: item.title,
+      categories: item.categories,
+      file: item.file.url,
+      thumbnail: item.thumbnail?.url,
+      user: {
+        name: item.user.name,
+        id: item.user._id,
+      },
+    };
+  });
+  res.json({ musics });
 };
