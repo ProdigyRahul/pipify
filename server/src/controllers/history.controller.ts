@@ -2,7 +2,7 @@ import History, { historyType } from "@/models/history.model";
 import { RequestHandler } from "express";
 
 export const updateHistory: RequestHandler = async (req, res) => {
-  const oldHistory = await History.findOne({ owner: req.user.id });
+  const oldHistory = await History.findOne({ user: req.user.id });
 
   const { music, progress, date } = req.body;
 
@@ -10,7 +10,7 @@ export const updateHistory: RequestHandler = async (req, res) => {
 
   if (!oldHistory) {
     await History.create({
-      owner: req.user.id,
+      user: req.user.id,
       last: history,
       all: [history],
     });
@@ -30,7 +30,7 @@ export const updateHistory: RequestHandler = async (req, res) => {
   );
 
   const histories = await History.aggregate([
-    { $match: { owner: req.user.id } },
+    { $match: { user: req.user.id } },
     { $unwind: "$all" },
     {
       $match: {
@@ -58,7 +58,7 @@ export const updateHistory: RequestHandler = async (req, res) => {
   if (sameDayHistory) {
     await History.findOneAndUpdate(
       {
-        owner: req.user.id,
+        user: req.user.id,
         "all.music": music,
       },
       {
