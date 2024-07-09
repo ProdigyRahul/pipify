@@ -1,10 +1,12 @@
 import { categories } from "./../utils/musicCategories";
 import { paginationQuery } from "@/@types/misc.types";
+import History from "@/models/history.model";
 import Music, { MusicDocument } from "@/models/music.model";
 import Playlist from "@/models/playlist.model";
 import { User } from "@/models/user.model";
 import { RequestHandler } from "express";
-import { isValidObjectId, ObjectId } from "mongoose";
+import moment from "moment";
+import mongoose, { isValidObjectId, ObjectId, PipelineStage } from "mongoose";
 
 /**
  * @desc    Update Follower Status Controller
@@ -215,12 +217,71 @@ export const getPublicPlaylists: RequestHandler = async (req, res) => {
 
 export const getRecommended: RequestHandler = async (req, res) => {
   const user = req.user;
+  let matchOptions: PipelineStage.Match = {
+    $match: { _id: { $exists: true } },
+  };
   if (user) {
     // send by profile
+    const usersPreviousHistory = await History.aggregate([
+      {
+        $match: {
+          user: new mongoose.Types.ObjectId(user.id),
+        },
+      },
+      {
+        $unwind: "$all",
+      },
+      {
+        $match: {
+          "all.date": {
+            $gte: moment().subtract(30, "days").toDate(),
+          },
+        },
+      },
+      {
+        $group: {
+          _id: "$all.music",
+        },
+      },
+      {
+        $lookup: {
+          from: "musics",
+          localField: "_id",
+          foreignField: "_id",
+          as: "musicData",
+        },
+      },
+      {
+        $unwind: "$musicData",
+      },
+      {
+        $group: {
+          _id: null,
+          categories: { $addToSet: "$musicData.categories" },
+        },
+      },
+      {
+        $unwind: "$categories",
+      },
+      {
+        $unwind: "$categories",
+      },
+      {
+        $group: {
+          _id: null,
+          categories: { $addToSet: "$categories" },
+        },
+      },
+    ]);
+
+    const categories = usersPreviousHistory[0]?.categories || [];
+    matchOptions = {
+      $match: { categories: { $in: categories } },
+    };
   }
   // Otherwise send default musics
   const musics = await Music.aggregate([
-    { $match: { _id: { $exists: true } } },
+    matchOptions,
     {
       $sort: {
         "likes.count": -1,
