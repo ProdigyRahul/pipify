@@ -64,6 +64,40 @@ export const isAuth: RequestHandler = async (req, res, next) => {
   next();
 };
 
+// Middleware to authenticate user
+export const mustAuth: RequestHandler = async (req, res, next) => {
+  const { authorization } = req.headers;
+  // Extract token from Authorization header
+  const token = authorization?.split("Bearer ")[1];
+
+  if (token) {
+    // Verify the JWT token
+    const payload = verify(token, JWT_SECRET) as JwtPayload;
+    const userId = payload.userId;
+
+    // Find user with matching id and token
+    const user = await User.findOne({ _id: userId, tokens: token });
+
+    if (!user) {
+      return res.status(403).json({ error: "Unauthorized Access!" });
+    }
+
+    // Attach user information to the request object
+    req.user = {
+      id: user._id,
+      name: user.name,
+      email: user.email,
+      verified: user.verified,
+      avatar: user.avatar?.url,
+      followers: user.followers.length,
+      following: user.following.length,
+    };
+    req.token = token;
+  }
+  // Proceed to the next middleware
+  next();
+};
+
 // Middleware to check if user is verified
 export const isVerified: RequestHandler = (req, res, next) => {
   if (!req.user.verified) {

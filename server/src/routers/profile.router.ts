@@ -2,10 +2,11 @@ import {
   getPublicPlaylists,
   getPublicProfile,
   getPublicUploads,
+  getRecommended,
   getUploads,
   updateFollower,
 } from "@/controllers/profile.controller";
-import { isAuth } from "@/middlewares/auth.middleware";
+import { isAuth, mustAuth } from "@/middlewares/auth.middleware";
 import { Router } from "express";
 
 const profileRouter = Router();
@@ -46,5 +47,7 @@ profileRouter.get("/public/:profileId", getPublicProfile);
  * @access Public
  */
 profileRouter.get("/playlist/:profileId", getPublicPlaylists);
+
+profileRouter.get("/recommended", mustAuth, getRecommended);
 
 export default profileRouter;

@@ -2,6 +2,7 @@ import { RequestWithFiles } from "@/middlewares/fileParser";
 import { RequestHandler } from "express";
 import cloudinary from "@/cloud";
 import Music from "@/models/music.model";
+import { PopulatedFavouritesList } from "@/@types/music.types";
 
 interface uploadMusicRequest extends RequestWithFiles {
   body: {
@@ -127,5 +128,29 @@ export const updateMusic: RequestHandler = async (
       file: music.file,
       poster: music.thumbnail?.url,
     },
+  });
+};
+
+export const getLatestUploads: RequestHandler = async (req, res) => {
+  const list = await Music.find()
+    .sort("-createdAt")
+    .limit(10)
+    .populate<PopulatedFavouritesList>("user");
+  const musics = list.map((item) => {
+    return {
+      id: item._id,
+      title: item.title,
+      about: item.about,
+      categories: item.categories,
+      file: item.file.url,
+      thumbnail: item.thumbnail?.url,
+      user: {
+        name: item.user.name,
+        id: item.user._id,
+      },
+    };
+  });
+  res.json({
+    musics,
   });
 };

@@ -1,5 +1,9 @@
 // Import controller functions for music operations
-import { updateMusic, uploadMusic } from "@/controllers/music.controller";
+import {
+  getLatestUploads,
+  updateMusic,
+  uploadMusic,
+} from "@/controllers/music.controller";
 
 // Import middleware for authentication and verification
 import { isAuth, isVerified } from "@/middlewares/auth.middleware";
@@ -46,5 +50,6 @@ musicRouter.patch(
   validate(MusicValidation),
   updateMusic
 );
+musicRouter.get("/latest", getLatestUploads);
 
 export default musicRouter;

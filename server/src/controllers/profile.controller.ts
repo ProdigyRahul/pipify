@@ -1,3 +1,4 @@
+import { categories } from "./../utils/musicCategories";
 import { paginationQuery } from "@/@types/misc.types";
 import Music, { MusicDocument } from "@/models/music.model";
 import Playlist from "@/models/playlist.model";
@@ -210,4 +211,48 @@ export const getPublicPlaylists: RequestHandler = async (req, res) => {
       };
     }),
   });
+};
+
+export const getRecommended: RequestHandler = async (req, res) => {
+  const user = req.user;
+  if (user) {
+    // send by profile
+  }
+  // Otherwise send default musics
+  const musics = await Music.aggregate([
+    { $match: { _id: { $exists: true } } },
+    {
+      $sort: {
+        "likes.count": -1,
+      },
+    },
+    { $limit: 10 },
+    {
+      $lookup: {
+        from: "users",
+        localField: "user",
+        foreignField: "_id",
+        as: "user",
+      },
+    },
+    {
+      $unwind: "$user",
+    },
+    {
+      $project: {
+        _id: 0,
+        id: "$_id",
+        title: "$title",
+        categories: "$categories",
+        about: "$about",
+        file: "$file.url",
+        thumbnail: "$thumbnail.url",
+        user: {
+          name: "$user.name",
+          id: "$user._id",
+        },
+      },
+    },
+  ]);
+  res.json({ musics });
 };
