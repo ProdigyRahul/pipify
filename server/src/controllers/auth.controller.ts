@@ -31,6 +31,11 @@ import cloudinary from "@/cloud";
  */
 export const signUpController: RequestHandler = async (req: NewUser, res) => {
   const { email, password, name } = req.body;
+  const existingUser = await User.findOne({ email });
+  if (existingUser) {
+    return res.status(409).json({ error: "Email already exists" });
+  }
+
   const user = await User.create({ email, password, name });
 
   const token = generateToken();
@@ -92,6 +97,9 @@ export const reVerifyEmail: RequestHandler = async (req, res) => {
   const user = await User.findById(userObjectId);
   if (!user) {
     return res.status(404).json({ error: "User not found" });
+  }
+  if (user.verified) {
+    return res.status(400).json({ error: "Email already verified" });
   }
 
   await VerificationToken.findOneAndDelete({ user: userObjectId });

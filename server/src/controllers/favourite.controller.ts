@@ -1,9 +1,10 @@
 // Import necessary types and models
+import { paginationQuery } from "@/@types/misc.types";
 import { PopulatedFavouritesList } from "@/@types/music.types";
 import Favourite from "@/models/favourite.model";
 import Music, { MusicDocument } from "@/models/music.model";
 import { RequestHandler } from "express-serve-static-core";
-import { isValidObjectId, ObjectId } from "mongoose";
+import mongoose, { isValidObjectId, ObjectId } from "mongoose";
 
 /**
  * @desc    Toggle Favourite Music Controller
@@ -91,37 +92,84 @@ export const toggleFavourite: RequestHandler = async (req, res) => {
  * Returns a formatted list of music objects with essential information.
  */
 export const getFavourites: RequestHandler = async (req, res) => {
-  const userId = req.user.id;
+  try {
+    const userId = req.user?.id;
 
-  // Find user's favourites and populate music details
-  const favourites = await Favourite.findOne({ user: userId }).populate<{
-    items: PopulatedFavouritesList[];
-  }>({
-    path: "items",
-    populate: {
-      path: "user",
-    },
-  });
+    if (!userId) {
+      return res.status(401).json({ message: "User not authenticated" });
+    }
 
-  // Handle case where no favourites found
-  if (!favourites) {
-    return res.status(404).json({ error: "Favourites not found", musics: [] });
+    const { limit = "20", skip = "0" } = req.query as paginationQuery;
+
+    // Validate that userId is a valid ObjectId
+    if (!mongoose.Types.ObjectId.isValid(userId)) {
+      return res.status(400).json({ message: "Invalid user ID" });
+    }
+
+    // First, check if the user has any favourites
+    const userFavourite = await Favourite.findOne({ user: userId });
+
+    if (!userFavourite) {
+      return res.json([]);
+    }
+
+    const favourites = await Favourite.aggregate([
+      { $match: { user: new mongoose.Types.ObjectId(userId) } },
+      {
+        $project: {
+          items: {
+            $slice: [
+              "$items",
+              parseInt(skip),
+              { $ifNull: [parseInt(limit), 20] },
+            ],
+          },
+        },
+      },
+      { $unwind: "$items" },
+      {
+        $lookup: {
+          from: "musics",
+          localField: "items",
+          foreignField: "_id",
+          as: "musicInfo",
+        },
+      },
+      { $unwind: "$musicInfo" },
+      {
+        $lookup: {
+          from: "users",
+          localField: "musicInfo.user",
+          foreignField: "_id",
+          as: "userInfo",
+        },
+      },
+      { $unwind: "$userInfo" },
+      {
+        $project: {
+          _id: 0,
+          id: "$musicInfo._id",
+          title: "$musicInfo.title",
+          about: "$musicInfo.about",
+          file: "$musicInfo.file.url",
+          thumbnail: "$musicInfo.thumbnail.url",
+          user: {
+            name: "$userInfo.name",
+            id: "$userInfo._id",
+          },
+        },
+      },
+    ]);
+
+    res.json(favourites);
+  } catch (error: unknown) {
+    let errorMessage = "An unexpected error occurred";
+    if (error instanceof Error) {
+      errorMessage = error.message;
+    }
+
+    res.status(500).json({ message: "Server error", error: errorMessage });
   }
-
-  // Format music data for response
-  const musics = favourites.items.map((item) => ({
-    id: item._id,
-    title: item.title,
-    categories: item.categories,
-    file: item.file.url,
-    thumbnail: item.thumbnail?.url,
-    user: {
-      name: item.user.name,
-      id: item.user._id,
-    },
-  }));
-
-  res.json({ musics });
 };
 
 /**
