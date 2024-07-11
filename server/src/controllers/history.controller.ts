@@ -2,6 +2,15 @@ import { paginationQuery } from "@/@types/misc.types";
 import History, { historyType } from "@/models/history.model";
 import { RequestHandler } from "express";
 
+/**
+ * @desc    Update History Controller
+ * @route   POST /api/v1/history
+ * @access  Private
+ *
+ * Updates or creates a history record for the current user.
+ * If a history record for today already exists, updates the progress.
+ * Otherwise, adds a new history record.
+ */
 export const updateHistory: RequestHandler = async (req, res) => {
   const oldHistory = await History.findOne({ user: req.user.id });
 
@@ -79,6 +88,13 @@ export const updateHistory: RequestHandler = async (req, res) => {
   res.json({ success: true });
 };
 
+/**
+ * @desc    Remove History Controller
+ * @route   DELETE //v1//history
+ * @access  Private
+ *
+ * Removes user's history. Can remove all history or specific entries.
+ */
 export const removeHistory: RequestHandler = async (req, res) => {
   const removeAll = req.query.all === "yes";
 
@@ -100,6 +116,13 @@ export const removeHistory: RequestHandler = async (req, res) => {
   res.json({ success: true });
 };
 
+/**
+ * @desc    Get Histories Controller
+ * @route   GET /api/history
+ * @access  Private
+ *
+ * Retrieves the history records for the current user with pagination.
+ */
 export const getHistories: RequestHandler = async (req, res) => {
   const { limit = "10", skip = "0" } = req.query as paginationQuery;
   const histories = await History.aggregate([
@@ -152,6 +175,13 @@ export const getHistories: RequestHandler = async (req, res) => {
   res.json({ histories });
 };
 
+/**
+ * @desc    Get Recently Played Controller
+ * @route   GET /api/history/recently-played
+ * @access  Private
+ *
+ * Retrieves the 10 most recently played music tracks for the current user.
+ */
 export const getRecentlyPlayed: RequestHandler = async (req, res) => {
   const match = { $match: { user: req.user.id } };
   const sliceMatch = {

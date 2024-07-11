@@ -132,6 +132,15 @@ export const updateMusic: RequestHandler = async (
   });
 };
 
+/**
+ * @desc    Get Latest Uploads Controller
+ * @route   GET /api/music/latest-uploads
+ * @access  Public
+ *
+ * Retrieves the latest uploaded music tracks.
+ * Limits the results to the 10 most recent uploads.
+ * Populates the user field for each music track.
+ */
 export const getLatestUploads: RequestHandler = async (req, res) => {
   const list = await Music.find()
     .sort("-createdAt")
@@ -151,7 +160,5 @@ export const getLatestUploads: RequestHandler = async (req, res) => {
       },
     };
   });
-  res.json({
-    musics,
-  });
+  res.json(musics);
 };

@@ -1,5 +1,6 @@
 import mongoose from "mongoose";
 import { MONGO_URI } from "@/utils/variables";
+import { logger } from "@/config/logger";
 
 /**
  * Database Connection Setup
@@ -13,7 +14,7 @@ mongoose
   .connect(MONGO_URI)
   .then(() => {
     // Log success message if connection is established
-    console.log("Database Successfully Connected");
+    logger.info(`Database Successfully Connected`);
   })
   .catch((error) => {
     // Log error message if connection fails

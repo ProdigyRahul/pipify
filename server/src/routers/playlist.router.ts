@@ -14,9 +14,9 @@ import { Router } from "express";
 const playlistRouter = Router();
 
 /**
- * @route POST /api/v1/playlist/create
- * @description Create a new playlist for the authenticated and verified user
- * @access Private
+ * @route   POST /api/v1/playlist/create
+ * @desc    Create a new playlist for the authenticated and verified user
+ * @access  Private
  */
 playlistRouter.post(
   "/create",
@@ -27,9 +27,9 @@ playlistRouter.post(
 );
 
 /**
- * @route PATCH /api/v1/playlist/
- * @description Update a playlist for the authenticated and verified user
- * @access Private
+ * @route   PATCH /api/v1/playlist/
+ * @desc    Update a playlist for the authenticated and verified user
+ * @access  Private
  */
 playlistRouter.patch(
   "/",
@@ -40,12 +40,24 @@ playlistRouter.patch(
 );
 
 /**
- * @route DELETE /api/v1/playlist/
- * @description Delete a playlist for the authenticated and verified user
- * @access Private
+ * @route   DELETE /api/v1/playlist/
+ * @desc    Delete a playlist for the authenticated and verified user
+ * @access  Private
  */
 playlistRouter.delete("/", isAuth, isVerified, removePlaylist);
+
+/**
+ * @route   GET /api/v1/playlist/playlists
+ * @desc    Retrieve a list of playlists for the authenticated and verified user
+ * @access  Private
+ */
 playlistRouter.get("/playlists", isAuth, isVerified, getPlaylists);
+
+/**
+ * @route   GET /api/v1/playlist/:playlistId
+ * @desc    Retrieve a list of music items in a specific playlist for the authenticated user
+ * @access  Private
+ */
 playlistRouter.get("/:playlistId", isAuth, getMusics);
 
 export default playlistRouter;

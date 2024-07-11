@@ -10,6 +10,7 @@ import profileRouter from "./routers/profile.router";
 import historyRouter from "./routers/history.router";
 import "@/utils/schedule";
 import { errorHandler } from "./middlewares/error.middleware";
+import { logger, morganMiddleware } from "./config/logger";
 // Initialize Express server
 const server = express();
 const PORT = process.env.PORT || 8080;
@@ -18,6 +19,7 @@ const PORT = process.env.PORT || 8080;
 server.use(express.json());
 server.use(express.urlencoded({ extended: false }));
 server.use(express.static("src/public"));
+server.use(morganMiddleware);
 
 // API routes
 server.use("/api/v1/auth", authRouter);
@@ -32,5 +34,15 @@ server.use(errorHandler);
 
 // Start the server
 server.listen(PORT, () => {
-  console.log(`Server is running at http://localhost:8080`);
+  logger.info(`Server is running at http://localhost:${PORT}`);
+});
+
+// Unhandled promise rejection handler
+process.on("unhandledRejection", (reason: Error, promise: Promise<any>) => {
+  logger.error("Unhandled Rejection at:", promise, "reason:", reason);
+});
+
+// Uncaught exception handler
+process.on("uncaughtException", (error: Error) => {
+  logger.error("Uncaught Exception:", error);
 });

@@ -8,6 +8,7 @@ const { env } = process as { env: { [key: string]: string } };
  * Extract specific environment variables for use in the application.
  */
 export const {
+  NODE_ENV,
   MONGO_URI,
   MAILTRAP_USER,
   MAILTRAP_PASSWORD,
