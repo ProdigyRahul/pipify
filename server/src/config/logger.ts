@@ -24,30 +24,39 @@ const levels = {
 const colors = {
   error: "red",
   warn: "yellow",
-  info: "white",
+  info: "cyan",
   http: "magenta",
   debug: "white",
 };
 
 winston.addColors(colors);
 
+const myFormat = winston.format.printf(
+  ({ level, message, label, timestamp }) => {
+    const date = new Date(timestamp);
+    const hour = date.getHours().toString().padStart(2, "0");
+    const minutes = date.getMinutes().toString().padStart(2, "0");
+    const seconds = date.getSeconds().toString().padStart(2, "0");
+    return `${date.toDateString()} ${hour}:${minutes}:${seconds} [${label}] ${level}: ${message}`;
+  }
+);
+
 const format = winston.format.combine(
-  winston.format.timestamp({ format: "YYYY-MM-DD HH:mm:ss:ms" }),
+  winston.format.label({ label: "Rahul-Development" }),
+  winston.format.timestamp(),
   winston.format.errors({ stack: true }),
   winston.format.splat(),
   winston.format.json(),
   winston.format.prettyPrint(),
   winston.format.colorize({ all: true }),
-  winston.format.printf(
-    (info) => `${info.timestamp} ${info.level}: ${info.message}`
-  )
+  myFormat
 );
 
 const transports = [
   new winston.transports.Console(),
   new DailyRotateFile({
     filename: `${LOG_DIR}/error-%DATE%.log`,
-    datePattern: "YYYY-MM-DD",
+    datePattern: "YYYY-MM-DD-HH",
     zippedArchive: true,
     maxSize: "20m",
     maxFiles: "14d",
@@ -55,7 +64,7 @@ const transports = [
   }),
   new DailyRotateFile({
     filename: `${LOG_DIR}/combined-%DATE%.log`,
-    datePattern: "YYYY-MM-DD",
+    datePattern: "YYYY-MM-DD-HH",
     zippedArchive: true,
     maxSize: "20m",
     maxFiles: "14d",
