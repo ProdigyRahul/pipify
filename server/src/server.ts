@@ -2,6 +2,7 @@ import express from "express";
 import "dotenv/config";
 import "express-async-errors";
 import "./db";
+import rateLimit from "express-rate-limit";
 import authRouter from "./routers/auth.router";
 import musicRouter from "./routers/music.router";
 import favouriteRouter from "./routers/favourite.router";
@@ -11,9 +12,36 @@ import historyRouter from "./routers/history.router";
 import "@/utils/schedule";
 import { errorHandler } from "./middlewares/error.middleware";
 import { logger, morganMiddleware } from "./config/logger";
+import helmet from "helmet";
+import compression from "compression";
+import { validateEnvVariables } from "./utils/variables";
+
+// Validate environment variables
+validateEnvVariables();
+
 // Initialize Express server
 const server = express();
 const PORT = process.env.PORT || 8080;
+
+// Rate limiting configuration
+const limiter = rateLimit({
+  windowMs: 15 * 60 * 1000, // 15 minutes
+  max: 100, // Limit each IP to 100 requests per windowMs
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: "Too many requests from this IP, please try again later.",
+  handler: (req, res) => {
+    logger.warn(`Rate limit exceeded for IP: ${req.ip}`);
+    res.status(429).json({
+      error: "Too many requests, please try again later.",
+    });
+  },
+});
+
+// Security and performance middlewares
+server.use(helmet());
+server.use(compression());
+server.use(limiter);
 
 // Middleware setup
 server.use(express.json());
@@ -28,6 +56,11 @@ server.use("/api/v1/favourite", favouriteRouter);
 server.use("/api/v1/playlist", playlistRouter);
 server.use("/api/v1/profile", profileRouter);
 server.use("/api/v1/history", historyRouter);
+
+// Health check endpoint
+server.get("/health", (req, res) => {
+  res.status(200).json({ status: "OK" });
+});
 
 // Error handling middleware
 server.use(errorHandler);

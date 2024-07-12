@@ -2,7 +2,6 @@ import { NODE_ENV as NODE } from "@/utils/variables";
 import morgan from "morgan";
 import path from "path";
 import winston from "winston";
-import DailyRotateFile from "winston-daily-rotate-file";
 import fs from "fs";
 
 // Environment variables
@@ -54,20 +53,13 @@ const format = winston.format.combine(
 
 const transports = [
   new winston.transports.Console(),
-  new DailyRotateFile({
-    filename: `${LOG_DIR}/error-%DATE%.log`,
-    datePattern: "YYYY-MM-DD-HH",
-    zippedArchive: true,
-    maxSize: "20m",
-    maxFiles: "14d",
-    level: "error",
+  new winston.transports.File({
+    filename: `${LOG_DIR}/server.log`,
+    level: "info",
   }),
-  new DailyRotateFile({
-    filename: `${LOG_DIR}/combined-%DATE%.log`,
-    datePattern: "YYYY-MM-DD-HH",
-    zippedArchive: true,
-    maxSize: "20m",
-    maxFiles: "14d",
+  new winston.transports.File({
+    filename: `${LOG_DIR}/errors.log`,
+    level: "error",
   }),
 ];
 
